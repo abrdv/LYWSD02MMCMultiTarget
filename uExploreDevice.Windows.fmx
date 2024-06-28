@@ -1,0 +1,15 @@
+inherited FMainForm_Windows: TFMainForm_Windows
+  DesignerMasterStyle = 3
+  inherited PMain: TPanel
+    inherited sbconnect: TSpeedButton
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = nil
+    end
+    inherited SkLclock: TLabel
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+    end
+    inherited SkLBattery: TLabel
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+    end
+  end
+end

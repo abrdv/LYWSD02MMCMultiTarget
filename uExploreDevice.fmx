@@ -1,0 +1,99 @@
+object FMainForm: TFMainForm
+  Left = 0
+  Top = 0
+  ClientHeight = 480
+  ClientWidth = 342
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  DesignerMasterStyle = 3
+  object PMain: TPanel
+    Align = Client
+    Size.Width = 342.000000000000000000
+    Size.Height = 480.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object sbconnect: TSpeedButton
+      Align = Bottom
+      StyledSettings = [Family, Size, FontColor]
+      Position.Y = 432.000000000000000000
+      Size.Width = 342.000000000000000000
+      Size.Height = 48.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Connect'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = sbconnectClick
+    end
+    object AniIndicator: TAniIndicator
+      Align = Center
+      Enabled = True
+      HitTest = False
+    end
+    object SkLclock: TLabel
+      Align = Top
+      StyledSettings = [Family, FontColor]
+      Size.Width = 342.000000000000000000
+      Size.Height = 89.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 46.000000000000000000
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      TextSettings.HorzAlign = Center
+      TabOrder = 0
+    end
+    object SkLBattery: TLabel
+      AutoTranslate = False
+      StyledSettings = [Family, FontColor]
+      Position.X = 8.000000000000000000
+      Position.Y = 97.000000000000000000
+      Size.Width = 57.000000000000000000
+      Size.Height = 23.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 20.000000000000000000
+      Text = '--'
+      TabOrder = 4
+    end
+    object SkLTemp: TLabel
+      AutoTranslate = False
+      StyledSettings = [Family, FontColor]
+      Position.X = 153.000000000000000000
+      Position.Y = 97.000000000000000000
+      Size.Width = 57.000000000000000000
+      Size.Height = 23.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 20.000000000000000000
+      TextSettings.HorzAlign = Trailing
+      Text = '--'
+      TabOrder = 2
+    end
+    object SkLGradus: TLabel
+      StyledSettings = [Family, FontColor]
+      Position.X = 218.000000000000000000
+      Position.Y = 97.000000000000000000
+      Size.Width = 57.000000000000000000
+      Size.Height = 23.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 20.000000000000000000
+      Text = '--'
+      TabOrder = 1
+    end
+    object SkLHum: TLabel
+      AutoTranslate = False
+      StyledSettings = [Family, FontColor]
+      Position.X = 73.000000000000000000
+      Position.Y = 97.000000000000000000
+      Size.Width = 72.000000000000000000
+      Size.Height = 23.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 20.000000000000000000
+      Text = '--'
+      TabOrder = 3
+    end
+  end
+  object tmMainRefresher: TTimer
+    Enabled = False
+    Left = 184
+    Top = 304
+  end
+end
