@@ -3,7 +3,18 @@ unit uTimerThread;
 interface
 
 uses
-  Windows, Classes;
+  {$IFDEF MSWINDOWS}
+  Windows,
+  Grijjy.TimerQueue.Win,
+  {$ENDIF}
+  {$IFDEF ANDROID}
+  Grijjy.TimerQueue,
+  {$ENDIF}
+  {$IFDEF LINUX}
+  Posix.Pthread,
+  Grijjy.TimerQueue.Linux,
+  {$ENDIF}
+  Classes;
 
 type
   TTimerThread = class(TThread)

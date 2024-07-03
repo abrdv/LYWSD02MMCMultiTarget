@@ -6,8 +6,7 @@ uses
   System.SysUtils, System.Types, System.UITypes, System.Classes,
   System.Variants, FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics,
   FMX.Dialogs, System.Bluetooth, System.Generics.Collections,
-  FMX.Controls.Presentation, FMX.StdCtrls, DateUtils, System.Skia,
-  FMX.Skia, uExploreDeviceBase;
+  FMX.Controls.Presentation, FMX.StdCtrls, DateUtils, uExploreDeviceBase;
 
 type
   TFMainForm = class(TForm)
@@ -42,6 +41,7 @@ var
 implementation
 
 {$R *.fmx}
+{$R *.NmXhdpiPh.fmx ANDROID}
 
 procedure BatteryChange(value: String);
 begin
@@ -121,7 +121,6 @@ procedure TFMainForm.FormCreate(Sender: TObject);
 begin
   AniIndicator.Enabled:=false;
   AniIndicator.Visible:=false;
-
 end;
 
 procedure TFMainForm.FormDestroy(Sender: TObject);

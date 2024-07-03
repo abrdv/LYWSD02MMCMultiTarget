@@ -7,7 +7,7 @@ uses
   FMX.Forms,
   uExploreDevice in 'uExploreDevice.pas' {FMainForm},
   uExploreDeviceBase in 'uExploreDeviceBase.pas',
-  uTimerThread in 'uTimerThread.pas';
+  uTimerMP in 'uTimerMP.pas';
 
 {$R *.res}
 

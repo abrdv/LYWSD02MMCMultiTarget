@@ -5,7 +5,10 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes,
   System.Variants, System.Bluetooth, System.Generics.Collections,
-  FMX.StdCtrls, DateUtils, FMX.Skia, FMX.Types, uTimerThread, System.Threading;
+  FMX.StdCtrls, DateUtils, FMX.Types,
+  //uTimerThread,
+  uTimerMP,
+  System.Threading;
 const
     SERVICE_UUID = '{EBE0CCB0-7A0A-4B0C-8A1A-6FF2997DA3A6}';
     TIME_CHARACTERISTIC_UUID = '{EBE0CCB7-7A0A-4B0C-8A1A-6FF2997DA3A6}'; //# 5 or 4 bytes          READ WRITE
@@ -85,10 +88,12 @@ type
       FOnConnectChange: TUpdateStateFunction;
       FOnWaitingState: TUpdateStateFunction;
 
-      FTimer: TTimerThread;
-      function SetupTimer: TTimerThread;
+      //FTimer: TTimerThread;
+      FTimer: TTimerMP;
+      //function SetupTimer: TTimerThread;
+      function SetupTimer: TTimerMP;
       procedure setActivityTimer(value: Boolean = false);
-      procedure OnTimerSecond(Sender: TObject);
+      procedure OnTimerSecond(const Sender: TObject);
 
       function GetCharacteristicByName(nameCharacteristic: String): TBluetoothGattCharacteristic;
 
@@ -519,7 +524,8 @@ begin
 
 end;
 
-//Timer
+//TTimerThread
+{
 function TExploreDeviceBase.SetupTimer:TTimerThread;
 begin
   if FTimer=nil then
@@ -530,14 +536,26 @@ begin
   end;
   Result:=FTimer;
 end;
+}
+//TTimerMP
+function TExploreDeviceBase.SetupTimer:TTimerMP;
+begin
+  if FTimer=nil then
+  begin
+    FTimer:=TTimerMP.Create;
+    FTimer.Interval:=intervalTime;
+    FTimer.OnTimer:=OnTimerSecond;
+  end;
+  Result:=FTimer;
+end;
 
-//Timer
-procedure TExploreDeviceBase.OnTimerSecond(Sender: TObject);
+//TTimerMP
+procedure TExploreDeviceBase.OnTimerSecond(const Sender: TObject);
 begin
   refreshTimeBatteryUnists;
 end;
 
-//Timer
+//TTimerMP
 procedure TExploreDeviceBase.setActivityTimer(value: Boolean);
 begin
   if value then
