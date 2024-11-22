@@ -78,6 +78,7 @@ type
       FService: TBluetoothGattService;
       FCharServiceDic: TDictionary<String, String>;
       FStatusText: String;
+      FConnected: Boolean;
       FDeviceValueStatus: TDeviceValueStatus;
 
       FOnTimeChange: TUpdateInformationFunction;
@@ -93,6 +94,7 @@ type
       //function SetupTimer: TTimerThread;
       function SetupTimer: TTimerMP;
       procedure setActivityTimer(value: Boolean = false);
+      procedure KillTimer;
       procedure OnTimerSecond(const Sender: TObject);
 
       function GetCharacteristicByName(nameCharacteristic: String): TBluetoothGattCharacteristic;
@@ -104,11 +106,15 @@ type
 
       procedure setDeviceNotConnected;
       procedure setDeviceConnected;
+
       procedure setDeviceTime;
-      procedure readDeviceData;
-      procedure refreshTimeBatteryUnists;
-      procedure setSubscribeData;
       procedure getDeviceTime;
+
+      procedure readDeviceData;
+
+      procedure refreshTimeBatteryUnists;
+
+      procedure setSubscribeData(action: boolean = true);
 
       procedure GetDevice(var ADevice: TBluetoothLEDevice); overload;
       function GetDevice: TBluetoothLEDevice; overload;
@@ -129,14 +135,17 @@ type
       procedure setExtraDeviceTime(isDefault: Boolean = false);
       procedure setExtraDeviceUnit(isDefault: Boolean = false);
       procedure setExtraDeviceConnect(val: Boolean = false);
+      //procedure SetConnected(Value: Boolean);
 
+      property CharServiceDic: TDictionary<String, String> read FCharServiceDic write FCharServiceDic;
       property DeviceValueStatus: TDeviceValueStatus read FDeviceValueStatus write FDeviceValueStatus;
       property Device: TBluetoothLEDevice read GetDevice write FDevice;
       property Service: TBluetoothGattService read GetService write FService;
+      property Connected: boolean read FConnected write FConnected default false;
     public
       constructor Create;
-      destructor Destroy;
-      function reConnect: boolean;
+      destructor Destroy; override;
+      function changeStatus: boolean;
       property OnTimeChange: TUpdateInformationFunction read FOnTimeChange write FOnTimeChange;
       property OnBatteryChange: TUpdateInformationFunction read FOnBatteryChange write FOnBatteryChange;
       property OnHumanityChange: TUpdateInformationFunction read FOnHumanityChange write FOnHumanityChange;
@@ -155,17 +164,18 @@ implementation
 constructor TExploreDeviceBase.Create;
 begin
   inherited Create;
-  FCharServiceDic:=TDictionary<String, String>.Create;
-  SetupDeviceValueStatus;
+  CharServiceDic:=TDictionary<String, String>.Create;
+  DeviceValueStatus:=TDeviceValueStatus.Create;
   setDeviceNotConnected;
 end;
 
 destructor TExploreDeviceBase.Destroy;
 begin
-  FreeAndNil(FTimer);
-  TBluetoothLEManager.Current.LastDiscoveredDevices.Remove(Device);
-  TBluetoothLEManager.Current.AllDiscoveredDevices.Clear;
-  setDevicenotconnected;
+  if Connected then
+  begin
+    changeStatus;
+    KillTimer;
+  end;
   FreeAndNil(DeviceValueStatus);
   FreeAndNil(FCharServiceDic);
   inherited Destroy;
@@ -173,57 +183,45 @@ end;
 
 procedure TExploreDeviceBase.setDeviceConnected;
 begin
-  FStatusText:='Connected';
-  setExtraDeviceConnect(true);
-  setDefaultExtra;
-  CleanDeviceInformation;
+  setDefaultExtra; //Выставляем дефолты
+  setExtraDeviceConnect(true); //Выставляем Неконнектед
+  FConnected:=false;
   if Device <> nil then
   begin
-
-    try Device.DiscoverServices;
+    try
+      FConnected:=true;
+      if not Device.DiscoverServices then
+        raise Exception.Create('Сервисы не были найдены');  //Запускаем поиск сервисов
+      SetupDeviceValueStatus;  //Заполняем словарь характеристика-сервис и устанавливаем реакцию на чтение
+      setDeviceTime; //Устанавливаем текущее время на устройстве
+      readDeviceData; //Читаем данные на устройстве по словарю
+      setSubscribeData;  //Подписываемся на данные на устройстве
+      setActivityTimer(true); //Активируем таймер (если его нет, то создается), на срабатываение refreshTimeBatteryUnists;
     except on E: Exception do
+      begin
        FStatusText:=E.Message;
+       setDevicenotconnected;
+       CleanDeviceInformation;
+      end;
     end;
-
-    try SetupDeviceValueStatus;
-    except on E: Exception do
-       FStatusText:=E.Message;
-    end;
-
-    try setDeviceTime;
-    except on E: Exception do
-       FStatusText:=E.Message;
-    end;
-    try readDeviceData;
-    except on E: Exception do
-       FStatusText:=E.Message;
-    end;
-    try setSubscribeData;
-    except on E: Exception do
-       FStatusText:=E.Message;
-    end;
-    try setActivityTimer(true);
-    except on E: Exception do
-       FStatusText:=E.Message;
-    end;
-
   end
   else
-    setDevicenotconnected;
+    begin
+      setDevicenotconnected;
+      CleanDeviceInformation;
+    end;
 end;
 
 procedure TExploreDeviceBase.setDeviceNotConnected;
 begin
-  FStatusText:='Not connected';
-  setExtraDeviceConnect(false);
-  setDefaultExtra;
-  CleanDeviceInformation;
+  FConnected:=false;
+  setDefaultExtra; //Выставляем дефолты
+  setExtraDeviceConnect(false); //Выставляем Неконнектед
+  setSubscribeData(false); //Убираем подписки, если Connected=True
+  setActivityTimer(false);  //останавливаем таймер
 end;
 
-function TExploreDeviceBase.reConnect: boolean;
-var
-  ABLEAdvertisedDataFilter: TBluetoothLEScanFilter;
-  ABLEAdvertisedDataFilterList: TBluetoothLEScanFilterList;
+function TExploreDeviceBase.changeStatus: boolean;
 begin
   setExtraDeviceAniIndicator(true);
   try
@@ -231,19 +229,12 @@ begin
       begin
         TBluetoothLEManager.Current.LastDiscoveredDevices.Remove(Device);
         TBluetoothLEManager.Current.AllDiscoveredDevices.Clear;
-        CleanDeviceInformation;
         setDevicenotconnected;
+        CleanDeviceInformation;
       end else
       begin
-        {
-        ABLEAdvertisedDataFilter:= TBluetoothLEScanFilter.Create;
-        ABLEAdvertisedDataFilterList:= TBluetoothLEScanFilterList.Create;
-        ABLEAdvertisedDataFilter.ServiceUUID:= StringToGUID(SERVICE_UUID);
-        ABLEAdvertisedDataFilterList.Add(ABLEAdvertisedDataFilter);
-        }
         FBluetoothManagerLE := TBluetoothLEManager.Current;
         FBluetoothManagerLE.OnDiscoveryEnd := DevicesDiscoveryNAMEDEV;
-        //FBluetoothManagerLE.StartDiscovery(waitingTime, ABLEAdvertisedDataFilterList);
         FBluetoothManagerLE.StartDiscovery(waitingTime);
       end;
   finally
@@ -253,23 +244,30 @@ end;
 
 procedure TExploreDeviceBase.CleanDeviceInformation;
 begin
-  FDevice := nil;
-  FService := nil;
   if not Assigned(DeviceValueStatus) then
     DeviceValueStatus := TDeviceValueStatus.Create;
-  setActivityTimer(false);
+  KillTimer;
+  FOnTimeChange := nil;
+  FOnBatteryChange := nil;
+  FOnHumanityChange := nil;
+  FOnTemperatureChange := nil;
+  FOnUnitChange := nil;
+  FOnConnectChange := nil;
+  FOnWaitingState := nil;
+  FDevice := nil;
+  FService := nil;
 end;
 
 procedure TExploreDeviceBase.SetupDeviceValueStatusDef;
 begin
-  if not Assigned(FCharServiceDic) then exit;
+  if not Assigned(CharServiceDic) then exit;
   
-  FCharServiceDic.AddOrSetValue((TIME_CHARACTERISTIC_UUID), SERVICE_UUID);
-  FCharServiceDic.AddOrSetValue((UNITS_CHARACTERISTIC_UUID), SERVICE_UUID);
-  FCharServiceDic.AddOrSetValue((UUID_DATA), SERVICE_UUID);
-  FCharServiceDic.AddOrSetValue((UUID_BATTERY), SERVICE_UUID);
-  FCharServiceDic.AddOrSetValue((UUID_NUM_RECORDS), SERVICE_UUID);
-  FCharServiceDic.AddOrSetValue((UUID_RECORD_IDX), SERVICE_UUID);
+  CharServiceDic.AddOrSetValue((TIME_CHARACTERISTIC_UUID), SERVICE_UUID);
+  CharServiceDic.AddOrSetValue((UNITS_CHARACTERISTIC_UUID), SERVICE_UUID);
+  CharServiceDic.AddOrSetValue((UUID_DATA), SERVICE_UUID);
+  CharServiceDic.AddOrSetValue((UUID_BATTERY), SERVICE_UUID);
+  CharServiceDic.AddOrSetValue((UUID_NUM_RECORDS), SERVICE_UUID);
+  CharServiceDic.AddOrSetValue((UUID_RECORD_IDX), SERVICE_UUID);
 end;
 
 procedure TExploreDeviceBase.SetupDeviceValueStatus;
@@ -277,9 +275,11 @@ var i, j: integer;
     CharList: TBluetoothGattCharacteristicList;
     AChar: TBluetoothGattCharacteristic;
 begin
-  FCharServiceDic.Clear;
-  if not Assigned(FCharServiceDic) then exit;
+  if not Assigned(CharServiceDic) then exit;
+  CharServiceDic.Clear;
+
   if Device=nil then exit;
+
   Device.OnCharacteristicRead := DidCharacteristicData;
   for i := 0 to Device.Services.Count - 1 do
     begin
@@ -299,19 +299,19 @@ begin
               (GUIDToString(AChar.UUID) = UUID_NUM_RECORDS) OR
               (GUIDToString(AChar.UUID) = UUID_RECORD_IDX) then
               begin
-                FCharServiceDic.AddOrSetValue(GUIDToString(AChar.UUID), AChar.GetService.UUID.ToString);
+                CharServiceDic.AddOrSetValue(GUIDToString(AChar.UUID), AChar.GetService.UUID.ToString);
                 if (TBluetoothProperty.Read in AChar.Properties) then
                   Device.ReadCharacteristic(AChar);
               end else
           if (GUIDToString(AChar.UUID) = TIME_CHARACTERISTIC_UUID) then
               begin
-                FCharServiceDic.AddOrSetValue(GUIDToString(AChar.UUID), AChar.GetService.UUID.ToString);
+                CharServiceDic.AddOrSetValue(GUIDToString(AChar.UUID), AChar.GetService.UUID.ToString);
                 Device.ReadCharacteristic(AChar);
               end
             else
           if (GUIDToString(AChar.UUID) = UUID_BATTERY) then
               begin
-                FCharServiceDic.AddOrSetValue(GUIDToString(AChar.UUID), AChar.GetService.UUID.ToString);
+                CharServiceDic.AddOrSetValue(GUIDToString(AChar.UUID), AChar.GetService.UUID.ToString);
                 Device.ReadCharacteristic(AChar);
               end
         end;
@@ -456,16 +456,17 @@ begin
   end;
 end;
 
-procedure TExploreDeviceBase.setSubscribeData;
+procedure TExploreDeviceBase.setSubscribeData(action: boolean = true);
 var
     AChar: TBluetoothGattCharacteristic;
 begin
+  if (Connected) then
   try
     AChar := GetCharacteristicByName(UUID_DATA);
     if AChar <> nil then
       if (TBluetoothProperty.Notify in AChar.Properties) or
         (TBluetoothProperty.Indicate in AChar.Properties) then
-          Device.SetCharacteristicNotification(AChar, True);
+          Device.SetCharacteristicNotification(AChar, action);
   finally
     AChar:=nil;
   end;
@@ -511,7 +512,7 @@ var
   ACharString: String;
 begin
   try
-    for ACharString in FCharServiceDic.Keys do
+    for ACharString in CharServiceDic.Keys do
       begin
         AChar := nil;
         AChar:=GetCharacteristicByName(ACharString);
@@ -544,6 +545,7 @@ begin
   begin
     FTimer:=TTimerMP.Create;
     FTimer.Interval:=intervalTime;
+    FTimer.Enabled:=false;
     FTimer.OnTimer:=OnTimerSecond;
   end;
   Result:=FTimer;
@@ -559,14 +561,25 @@ end;
 procedure TExploreDeviceBase.setActivityTimer(value: Boolean);
 begin
   if value then
-    SetupTimer.Enabled:=value else
-    if FTimer<>nil then
-    SetupTimer.Enabled:=value;
+    SetupTimer.Enabled:=true
+  else
+  if FTimer<>nil then
+    try
+      SetupTimer.Enabled:=false;
+    except
+    end;
+end;
+
+//TTimerMP
+procedure TExploreDeviceBase.KillTimer;
+begin
+  if FTimer<>nil then
+    FTimer.Enabled:=false;
+  FTimer.Free;
 end;
 
 procedure TExploreDeviceBase.setDefaultExtra;
 begin
-  setExtraDeviceAniIndicator(false);
   setExtraDeviceTime(true);
   setExtraDeviceBattery(true);
   setExtraDeviceHumanity(true);
@@ -606,13 +619,21 @@ end;
 procedure TExploreDeviceBase.setExtraDeviceAniIndicator(val: Boolean);
 begin
   if Assigned(OnWaitingState) then
-    OnWaitingState(val);
+    TTask.Run(
+    procedure
+    begin
+      TThread.Synchronize(nil,
+        procedure
+        begin
+          OnWaitingState(val);
+        end);
+    end);
 end;
 
 procedure TExploreDeviceBase.setExtraDeviceConnect(val: Boolean);
 begin
   if Assigned(OnConnectChange) then
-      TTask.Run(
+    TTask.Run(
     procedure
     begin
       TThread.Synchronize(nil,

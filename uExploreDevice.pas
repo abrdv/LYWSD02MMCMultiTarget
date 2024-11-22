@@ -131,19 +131,26 @@ end;
 
 procedure TFMainForm.sbconnectClick(Sender: TObject);
 begin
-  ExploreDeviceBase:=TExploreDeviceBase.Create;
-  try
-    ExploreDeviceBase.OnBatteryChange:=BatteryChange;
-    ExploreDeviceBase.OnConnectChange:=ConnectChange;
-    ExploreDeviceBase.OnHumanityChange:=HumanityChange;
-    ExploreDeviceBase.OnTemperatureChange:=TemperatureChange;
-    ExploreDeviceBase.OnTimeChange:=TimeChange;
-    ExploreDeviceBase.OnUnitChange:=UnitChange;
-    ExploreDeviceBase.OnWaitingState:=WaitingState;
+  if ExploreDeviceBase<>nil then
+  begin
+    ExploreDeviceBase.changeStatus;
+    ExploreDeviceBase.Free;
+  end else
+  begin
+    ExploreDeviceBase:=TExploreDeviceBase.Create;
+    try
+      ExploreDeviceBase.OnBatteryChange:=BatteryChange;
+      ExploreDeviceBase.OnConnectChange:=ConnectChange;
+      ExploreDeviceBase.OnHumanityChange:=HumanityChange;
+      ExploreDeviceBase.OnTemperatureChange:=TemperatureChange;
+      ExploreDeviceBase.OnTimeChange:=TimeChange;
+      ExploreDeviceBase.OnUnitChange:=UnitChange;
+      ExploreDeviceBase.OnWaitingState:=WaitingState;
 
-    ExploreDeviceBase.reConnect;
-  finally
+      ExploreDeviceBase.changeStatus;
+    finally
 
+    end;
   end;
 end;
 
