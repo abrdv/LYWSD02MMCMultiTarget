@@ -22,6 +22,7 @@ type
     procedure sbconnectClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure SkLclockDblClick(Sender: TObject);
   private
     ExploreDeviceBase: TExploreDeviceBase;
   public
@@ -154,5 +155,17 @@ begin
   end;
 end;
 
+
+procedure TFMainForm.SkLclockDblClick(Sender: TObject);
+begin
+  if ExploreDeviceBase<>nil then
+  begin
+    try
+      ExploreDeviceBase.synchronizeTime; //Устанавливаем текущее время на устройстве
+    except
+
+    end;
+  end;
+end;
 
 end.

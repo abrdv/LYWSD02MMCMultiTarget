@@ -41,6 +41,7 @@ object FMainForm: TFMainForm
       TextSettings.Font.StyleExt = {00070000000000000004000000}
       TextSettings.HorzAlign = Center
       TabOrder = 0
+      OnDblClick = SkLclockDblClick
     end
     object SkLBattery: TLabel
       AutoTranslate = False

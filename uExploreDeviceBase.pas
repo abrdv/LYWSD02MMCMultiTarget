@@ -146,6 +146,7 @@ type
       constructor Create;
       destructor Destroy; override;
       function changeStatus: boolean;
+      procedure synchronizeTime;
       property OnTimeChange: TUpdateInformationFunction read FOnTimeChange write FOnTimeChange;
       property OnBatteryChange: TUpdateInformationFunction read FOnBatteryChange write FOnBatteryChange;
       property OnHumanityChange: TUpdateInformationFunction read FOnHumanityChange write FOnHumanityChange;
@@ -549,6 +550,12 @@ begin
     FTimer.OnTimer:=OnTimerSecond;
   end;
   Result:=FTimer;
+end;
+
+procedure TExploreDeviceBase.synchronizeTime;
+begin
+  if FDevice <> nil then
+  setDeviceTime;
 end;
 
 //TTimerMP
